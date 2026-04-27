@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CWC Fitness Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --accent: #c8f135;
+    --accent2: #4dc8ff;
+    --text: #f0f0f0;
+    --muted: #555555;
+    --pass: #c8f135;
+    --fail: #ff4d4d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 2rem 1.5rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2.5rem, 8vw, 5rem);
+    letter-spacing: 0.05em;
+    line-height: 1;
+    color: var(--accent);
+  }
+
+  header p {
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.25rem;
+  }
+
+  .header-links {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .header-links a {
+    font-size: 0.65rem;
+    color: var(--accent);
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.2s;
+  }
+
+  .header-links a:hover { border-bottom-color: var(--accent); }
+
+  #last-updated {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.5rem;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    padding: 0 1.5rem;
+    overflow-x: auto;
+  }
+
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  .tab-content { display: none; padding: 1.5rem; }
+  .tab-content.active { display: block; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--pass);
+    padding: 1rem;
+  }
+
+  .stat-card.fail { border-top-color: var(--fail); }
+
+  .stat-card .label {
+    font-size: 0.6rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+  }
+
+  .stat-card .name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-card .status { font-size: 0.65rem; font-weight: 500; }
+  .status.pass { color: var(--pass); }
+  .status.fail { color: var(--fail); }
+
+  .stat-card .pct {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  @media (max-width: 600px) {
+    .charts-grid { grid-template-columns: 1fr; }
+  }
+
+  .chart-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+  }
+
+  .chart-box h3 {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 1rem;
+  }
+
+  .chart-box canvas { max-height: 220px; }
+
+  .section-title {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 0.75rem;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  table { width: 100%; border-collapse: collapse; font-size: 0.7rem; }
+
+  th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    color: var(--muted);
+    font-weight: 400;
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid #1a1a1a;
+    white-space: nowrap;
+  }
+
+  tr:last-child td { border-bottom: none; }
+
+  .check { color: var(--pass); }
+  .cross { color: var(--fail); }
+
+  .loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: var(--muted);
+    font-size: 0.75rem;
+    letter-spacing: 0.1em;
+  }
+
+  .dot-flash span { animation: blink 1.2s infinite; margin-left: 2px; }
+  .dot-flash span:nth-child(2) { animation-delay: 0.2s; }
+  .dot-flash span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes blink {
+    0%, 80%, 100% { opacity: 0; }
+    40% { opacity: 1; }
+  }
+
+  .bar-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.6rem;
+  }
+
+  .bar-label { font-size: 0.65rem; width: 110px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; }
+  .bar-track { flex: 1; height: 6px; background: var(--border); }
+  .bar-fill { height: 100%; background: var(--accent); transition: width 0.8s cubic-bezier(0.4,0,0.2,1); }
+  .bar-fill.deficit { background: var(--accent2); }
+  .bar-pct { font-size: 0.6rem; color: var(--muted); width: 36px; text-align: right; flex-shrink: 0; }
+
+  .error { color: var(--fail); font-size: 0.75rem; padding: 2rem; text-align: center; }
+
+  /* PERIODS TAB */
+  .period-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    margin-bottom: 1.5rem;
+  }
+
+  .period-header {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .period-header .range {
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+
+  .period-header .period-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+
+  .period-users {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+  }
+
+  .period-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.65rem;
+  }
+
+  .period-user .u-name { color: var(--text); }
+  .period-user .u-stats { color: var(--muted); }
+  .period-user .u-result { font-weight: 500; }
+  .period-user .u-result.pass { color: var(--pass); }
+  .period-user .u-result.fail { color: var(--fail); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>CWC FITNESS</h1>
+  <p>Accountability Tracker</p>
+  <div class="header-links">
+    <a href="https://docs.google.com/spreadsheets/d/1YJZJmV8Za3nA_a-KAjdgVTahOVlIsFJteJ9aocwKJtM/edit" target="_blank">📊 Spreadsheet</a>
+  </div>
+  <div id="last-updated"></div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('period')">Last 14 Days</button>
+  <button class="tab-btn" onclick="switchTab('alltime')">All-Time</button>
+  <button class="tab-btn" onclick="switchTab('periods')">Periods</button>
+</div>
+
+<div id="tab-period" class="tab-content active">
+  <div class="loading dot-flash" id="loading-period">LOADING<span>.</span><span>.</span><span>.</span></div>
+  <div id="period-content" style="display:none">
+    <div class="stat-grid" id="period-cards"></div>
+    <div class="charts-grid">
+      <div class="chart-box"><h3>💪 Workout Completion %</h3><canvas id="chart-period-workout"></canvas></div>
+      <div class="chart-box"><h3>🥗 Deficit Completion %</h3><canvas id="chart-period-deficit"></canvas></div>
+    </div>
+    <p class="section-title">Raw Data — Last 14 Days</p>
+    <div class="table-wrap"><table id="table-period"><thead><tr></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<div id="tab-alltime" class="tab-content">
+  <div class="loading dot-flash" id="loading-alltime">LOADING<span>.</span><span>.</span><span>.</span></div>
+  <div id="alltime-content" style="display:none">
+    <div class="stat-grid" id="alltime-cards"></div>
+    <div class="charts-grid">
+      <div class="chart-box"><h3>💪 All-Time Workout %</h3><div id="bars-workout"></div></div>
+      <div class="chart-box"><h3>🥗 All-Time Deficit %</h3><div id="bars-deficit"></div></div>
+    </div>
+    <p class="section-title" style="margin-top:1rem">Raw Data — All-Time</p>
+    <div class="table-wrap"><table id="table-alltime"><thead><tr></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<div id="tab-periods" class="tab-content">
+  <div class="loading dot-flash" id="loading-periods">LOADING<span>.</span><span>.</span><span>.</span></div>
+  <div id="periods-content" style="display:none">
+    <div id="periods-list"></div>
+  </div>
+</div>
+
+<script>
+const SHEET_ID = '1YJZJmV8Za3nA_a-KAjdgVTahOVlIsFJteJ9aocwKJtM';
+const GITHUB_RAW = 'https://raw.githubusercontent.com/chubbygoat/fitness-tracker-CWC/main/users.json';
+const WORKOUT_THRESHOLD = 6;
+const DEFICIT_THRESHOLD = 5;
+
+let allData = {};
+let users = [];
+let sortedUsers = [];
+let periodCharts = {};
+
+function switchTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.querySelector(`[onclick="switchTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+async function fetchUsers() {
+  const res = await fetch(GITHUB_RAW + '?nocache=' + Date.now());
+  return await res.json();
+}
+
+async function fetchUserSheet(username) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(username)}&nocache=${Date.now()}`;
+  const res = await fetch(url);
+  const text = await res.text();
+  const json = JSON.parse(text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*?)\);?\s*$/)[1]);
+  const rows = json.table.rows || [];
+  const parsed = [];
+  for (const row of rows) {
+    const vals = row.c.map(c => c ? (c.v || '') : '');
+    if (vals[0] === 'Check-in Date' || !vals[0]) continue;
+    parsed.push({
+      date: vals[0],
+      loggedDate: vals[1] || '',
+      workout: vals[2] === '✅',
+      deficit: vals[3] === '✅'
+    });
+  }
+  return parsed.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function getLast14(data) {
+  return [...data].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 14);
+}
+
+function calcStats(data) {
+  const total = data.length;
+  const workouts = data.filter(d => d.workout).length;
+  const deficits = data.filter(d => d.deficit).length;
+  const workoutPct = total ? Math.round(workouts / total * 100) : 0;
+  const deficitPct = total ? Math.round(deficits / total * 100) : 0;
+  const days = Math.min(total, 14);
+  const weeks = days / 7;
+  const wThresh = Math.round(WORKOUT_THRESHOLD * weeks);
+  const dThresh = Math.round(DEFICIT_THRESHOLD * weeks);
+  return {
+    total, workouts, deficits, workoutPct, deficitPct,
+    wThresh, dThresh,
+    workoutPass: workouts >= wThresh,
+    deficitPass: deficits >= dThresh,
+    combined: Math.round((workoutPct + deficitPct) / 2)
+  };
+}
+
+function sortUsersByStats(statsMap) {
+  return [...users].sort((a, b) => {
+    const sa = statsMap[a] ? statsMap[a].combined : 0;
+    const sb = statsMap[b] ? statsMap[b].combined : 0;
+    return sb - sa;
+  });
+}
+
+function renderCards(containerId, statsMap, label, sorted) {
+  document.getElementById(containerId).innerHTML = sorted.map(u => {
+    const s = statsMap[u];
+    const passed = s.workoutPass && s.deficitPass;
+    return `<div class="stat-card ${passed ? '' : 'fail'}">
+      <div class="label">${label}</div>
+      <div class="name">${u}</div>
+      <div class="status ${passed ? 'pass' : 'fail'}">${passed ? '✓ PASSING' : '✗ FAILING'}</div>
+      <div class="pct">💪 ${s.workoutPct}% · 🥗 ${s.deficitPct}%</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBarCharts(statsMap, sorted) {
+  ['bars-workout', 'bars-deficit'].forEach(id => document.getElementById(id).innerHTML = '');
+  sorted.forEach(u => {
+    const s = statsMap[u];
+    document.getElementById('bars-workout').innerHTML += `
+      <div class="bar-row">
+        <div class="bar-label">${u}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${s.workoutPct}%"></div></div>
+        <div class="bar-pct">${s.workoutPct}%</div>
+      </div>`;
+    document.getElementById('bars-deficit').innerHTML += `
+      <div class="bar-row">
+        <div class="bar-label">${u}</div>
+        <div class="bar-track"><div class="bar-fill deficit" style="width:${s.deficitPct}%"></div></div>
+        <div class="bar-pct">${s.deficitPct}%</div>
+      </div>`;
+  });
+}
+
+function renderPeriodCharts(statsMap, sorted) {
+  if (periodCharts.workout) periodCharts.workout.destroy();
+  if (periodCharts.deficit) periodCharts.deficit.destroy();
+  const opts = {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor: '#1a1a1a', titleColor: '#f0f0f0', bodyColor: '#888', borderColor: '#333', borderWidth: 1 } },
+    scales: {
+      x: { ticks: { color: '#555', font: { family: 'DM Mono', size: 10 } }, grid: { color: '#222' } },
+      y: { min: 0, max: 100, ticks: { color: '#555', font: { family: 'DM Mono', size: 10 }, callback: v => v + '%' }, grid: { color: '#222' } }
+    }
+  };
+  periodCharts.workout = new Chart(document.getElementById('chart-period-workout'), {
+    type: 'bar',
+    data: { labels: sorted, datasets: [{ data: sorted.map(u => statsMap[u].workoutPct), backgroundColor: '#c8f135', borderRadius: 2 }] },
+    options: opts
+  });
+  periodCharts.deficit = new Chart(document.getElementById('chart-period-deficit'), {
+    type: 'bar',
+    data: { labels: sorted, datasets: [{ data: sorted.map(u => statsMap[u].deficitPct), backgroundColor: '#4dc8ff', borderRadius: 2 }] },
+    options: opts
+  });
+}
+
+function renderTable(tableId, dataMap, userList) {
+  const table = document.getElementById(tableId);
+  const allDates = [...new Set(userList.flatMap(u => dataMap[u].map(d => d.date)))].sort((a,b) => b.localeCompare(a));
+  const thead = table.querySelector('thead tr');
+  thead.innerHTML = '<th>Date</th>' + userList.map(u => `<th colspan="2">${u}</th>`).join('');
+  let subrow = thead.parentElement.querySelector('tr:nth-child(2)');
+  if (!subrow) { subrow = document.createElement('tr'); thead.after(subrow); }
+  subrow.innerHTML = '<th></th>' + userList.map(() => '<th>💪</th><th>🥗</th>').join('');
+  const tbody = table.querySelector('tbody');
+  tbody.innerHTML = '';
+  allDates.forEach(date => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${date}</td>`;
+    userList.forEach(u => {
+      const row = dataMap[u].find(d => d.date === date);
+      if (row) {
+        tr.innerHTML += `<td class="${row.workout ? 'check' : 'cross'}">${row.workout ? '✅' : '❌'}</td>`;
+        tr.innerHTML += `<td class="${row.deficit ? 'check' : 'cross'}">${row.deficit ? '✅' : '❌'}</td>`;
+      } else {
+        tr.innerHTML += '<td style="color:#333">—</td><td style="color:#333">—</td>';
+      }
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+function buildPeriods() {
+  // Find earliest date across all users
+  const allDates = users.flatMap(u => allData[u].map(d => d.date)).sort();
+  if (!allDates.length) return [];
+
+  const start = new Date(allDates[0]);
+  const now = new Date();
+  const periods = [];
+  let periodStart = new Date(start);
+  let periodNum = 1;
+
+  while (periodStart <= now) {
+    const periodEnd = new Date(periodStart);
+    periodEnd.setDate(periodEnd.getDate() + 13);
+
+    const startStr = periodStart.toISOString().split('T')[0];
+    const endStr = periodEnd.toISOString().split('T')[0];
+
+    const userResults = users.map(u => {
+      const data = allData[u].filter(d => d.date >= startStr && d.date <= endStr);
+      const total = data.length;
+      const workouts = data.filter(d => d.workout).length;
+      const deficits = data.filter(d => d.deficit).length;
+      const weeks = Math.min(total, 14) / 7;
+      const wThresh = Math.round(WORKOUT_THRESHOLD * weeks);
+      const dThresh = Math.round(DEFICIT_THRESHOLD * weeks);
+      const passed = total > 0 && workouts >= wThresh && deficits >= dThresh;
+      const workoutPct = total ? Math.round(workouts / total * 100) : 0;
+      const deficitPct = total ? Math.round(deficits / total * 100) : 0;
+      return { username: u, workouts, deficits, wThresh, dThresh, passed, total, workoutPct, deficitPct };
+    }).filter(r => r.total > 0);
+
+    if (userResults.length > 0) {
+      periods.push({ num: periodNum, startStr, endStr, userResults });
+    }
+
+    periodStart.setDate(periodStart.getDate() + 14);
+    periodNum++;
+  }
+
+  return periods.reverse(); // most recent first
+}
+
+function renderPeriods(periods) {
+  const container = document.getElementById('periods-list');
+  if (!periods.length) {
+    container.innerHTML = '<div class="error">No period data yet.</div>';
+    return;
+  }
+
+  container.innerHTML = periods.map(p => {
+    const userHTML = p.userResults
+      .sort((a, b) => (b.workoutPct + b.deficitPct) - (a.workoutPct + a.deficitPct))
+      .map(r => `
+        <div class="period-user">
+          <span class="u-name">${r.username}</span>
+          <span class="u-stats">💪 ${r.workouts}/${r.wThresh} · 🥗 ${r.deficits}/${r.dThresh}</span>
+          <span class="u-result ${r.passed ? 'pass' : 'fail'}">${r.passed ? '✓ PASS' : '✗ FAIL'}</span>
+        </div>`).join('');
+
+    return `
+      <div class="period-block">
+        <div class="period-header">
+          <span class="period-num">Period ${p.num}</span>
+          <span class="range">${p.startStr} → ${p.endStr}</span>
+        </div>
+        <div class="period-users">${userHTML}</div>
+      </div>`;
+  }).join('');
+}
+
+async function init() {
+  try {
+    users = await fetchUsers();
+    if (!users.length) {
+      ['loading-period','loading-alltime','loading-periods'].forEach(id => document.getElementById(id).textContent = 'No users found.');
+      return;
+    }
+
+    for (const u of users) allData[u] = await fetchUserSheet(u);
+
+    const periodDataMap = {};
+    const periodStats = {};
+    const alltimeStats = {};
+
+    users.forEach(u => {
+      periodDataMap[u] = getLast14(allData[u]);
+      periodStats[u] = calcStats(periodDataMap[u]);
+      alltimeStats[u] = calcStats(allData[u]);
+    });
+
+    // Sort by combined % descending
+    const sortedPeriod = sortUsersByStats(periodStats);
+    const sortedAlltime = sortUsersByStats(alltimeStats);
+
+    // Period tab
+    renderCards('period-cards', periodStats, 'Last 14 Days', sortedPeriod);
+    renderPeriodCharts(periodStats, sortedPeriod);
+    renderTable('table-period', periodDataMap, sortedPeriod);
+    document.getElementById('loading-period').style.display = 'none';
+    document.getElementById('period-content').style.display = 'block';
+
+    // All-time tab
+    renderCards('alltime-cards', alltimeStats, 'All-Time', sortedAlltime);
+    renderBarCharts(alltimeStats, sortedAlltime);
+    renderTable('table-alltime', allData, sortedAlltime);
+    document.getElementById('loading-alltime').style.display = 'none';
+    document.getElementById('alltime-content').style.display = 'block';
+
+    // Periods tab
+    const periods = buildPeriods();
+    renderPeriods(periods);
+    document.getElementById('loading-periods').style.display = 'none';
+    document.getElementById('periods-content').style.display = 'block';
+
+    document.getElementById('last-updated').textContent = 'Updated: ' + new Date().toLocaleString();
+
+  } catch(e) {
+    console.error(e);
+    ['loading-period','loading-alltime','loading-periods'].forEach(id => {
+      document.getElementById(id).innerHTML = `<div class="error">Error: ${e.message}</div>`;
+    });
+  }
+}
+
+init();
+</script>
+</body>
+</html>
