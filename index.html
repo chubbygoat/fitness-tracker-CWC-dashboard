@@ -400,12 +400,12 @@ function calcStats(data) {
   const total = data.length;
   const workouts = data.filter(d => d.workout).length;
   const deficits = data.filter(d => d.deficit).length;
-  const workoutPct = total ? Math.round(workouts / total * 100) : 0;
-  const deficitPct = total ? Math.round(deficits / total * 100) : 0;
+  const workoutPct = total ? Math.floor(workouts / total * 100) : 0;
+  const deficitPct = total ? Math.floor(deficits / total * 100) : 0;
   const days = Math.min(total, 14);
   const weeks = days / 7;
-  const wThresh = Math.round(WORKOUT_THRESHOLD * weeks);
-  const dThresh = Math.round(DEFICIT_THRESHOLD * weeks);
+  const wThresh = Math.floor(WORKOUT_THRESHOLD * weeks);
+  const dThresh = Math.floor(DEFICIT_THRESHOLD * weeks);
   return {
     total, workouts, deficits, workoutPct, deficitPct,
     wThresh, dThresh,
@@ -529,11 +529,11 @@ function buildPeriods() {
       const workouts = data.filter(d => d.workout).length;
       const deficits = data.filter(d => d.deficit).length;
       const weeks = Math.min(total, 14) / 7;
-      const wThresh = Math.round(WORKOUT_THRESHOLD * weeks);
-      const dThresh = Math.round(DEFICIT_THRESHOLD * weeks);
+      const wThresh = Math.floor(WORKOUT_THRESHOLD * weeks);
+      const dThresh = Math.floor(DEFICIT_THRESHOLD * weeks);
       const passed = total > 0 && workouts >= wThresh && deficits >= dThresh;
-      const workoutPct = total ? Math.round(workouts / total * 100) : 0;
-      const deficitPct = total ? Math.round(deficits / total * 100) : 0;
+      const workoutPct = total ? Math.floor(workouts / total * 100) : 0;
+      const deficitPct = total ? Math.floor(deficits / total * 100) : 0;
       return { username: u, workouts, deficits, wThresh, dThresh, passed, total, workoutPct, deficitPct };
     }).filter(r => r.total > 0);
 
